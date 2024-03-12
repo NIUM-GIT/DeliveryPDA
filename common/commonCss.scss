@@ -1,0 +1,118 @@
+// .u-page {
+// 	padding: 5px 15px 40px 15px;
+// }
+// .row {
+// 	@include flex;
+// }
+// .u-cell-icon {
+// 	width: 36rpx;
+// 	height: 36rpx;
+// 	margin-right: 8rpx;
+// }
+.uni-body{
+	height: -webkit-fill-available;
+}
+.uni-body,.uni-tabbar, .uni-page-head,.u-popup__content{
+	max-width: 600px;
+	margin: 0 auto;
+	box-shadow: 0px 0px 4px #dedede;	
+	.u-modal{
+		width: auto!important;
+	}
+	width: -webkit-fill-available;
+}
+.loginBtn{
+	background-color: #338dc0;
+	width: 80%;
+	color: #FFFFFF;
+	margin-top: 30px;
+}
+.loginInputBox{
+	margin-top: 15px;
+	position: relative;
+	width: 80%;
+	.u-input{
+		background-color: #FFFFFF!important;
+	}
+}
+.loginInput{
+	border: 2rpx solid #DFDFDF;
+	padding: 20rpx 50rpx;
+	border-radius: 10rpx;
+	margin-top: 20rpx;
+}
+.loginIcon{
+	position: absolute;
+	top: 0;
+	width: 50rpx;
+	height: 72rpx;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	color: #b8b8b8;
+}
+// .leftIcon{
+// 	left: 0;
+// 	width: 70rpx;
+// }
+// .rightIcon{
+// 	right: 0;
+// 	width: 70rpx;
+// }
+// .placeholderClass{
+// 	color: #aaaaaa;
+// }
+.versionBox{
+	height: 30px;
+	// @include flex(column);
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	padding: 0 15px;
+	z-index: 99;
+	background-color: #338dc0;
+	font-size: 14px;
+	color: #FFFFFF;
+	width: -webkit-fill-available;
+	max-width: 570px;
+	margin: 0 auto;
+}
+.userBox{
+	display: flex;
+	align-items: center;
+}
+.outIcon{
+	width: 18px;
+	height: 18px;
+	margin-left: 10px;
+	cursor: pointer;
+}
+/deep/.table{
+	max-height: 300px;
+	margin-top: 20px;
+	.wyb-table-content-line:hover{
+		cursor: pointer!important;
+	}
+	.wyb-table-loading-box{
+		width: auto;
+		overflow: hidden!important;
+	}
+	.wyb-table-scroll-view{
+		/* #ifdef APP-PLUS */
+		overflow: scroll!important;
+		/* #endif */
+		/* #ifndef APP-PLUS */
+		overflow: hidden!important;
+		/* #endif */
+		max-height: 300px;
+	}
+	.wyb-table-scroll-view:hover{
+		overflow: scroll!important;
+	}
+	max-width: 100%;
+	padding: 0 10px;
+}
