@@ -52,7 +52,7 @@ export default {
 		//窗体改变大小触发事件
 		uni.onWindowResize((res) => {
 			that.windowWidth = res.size.windowWidth;
-			console.log("页面狂赌：",that.windowWidth)
+			console.log("窗体改变大小：",that.windowWidth)
 		})
 		
 		//打开获取屏幕大小

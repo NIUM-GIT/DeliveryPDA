@@ -17,12 +17,12 @@ let plants = [{
 		value: "WPSZ",
 		label: "深圳",
 		url: URL_SZ
-	},
-	{
-		value: "WPTS",
-		label: "测试",
-		url: URL_CS
 	}
+	// {
+	// 	value: "WPTS",
+	// 	label: "测试",
+	// 	url: URL_CS
+	// }
 ]
 
 let plant = window.localStorage.getItem("plant") ?
