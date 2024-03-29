@@ -1,25 +1,29 @@
 <template>
 	<view class="n-page">
 		<u-form labelPosition="left" :model="shipmentRecord" :rules="rules" ref="form1">
-			<u-form-item label="计划行号:" prop="DeliveryID" borderBottom ref="item1" labelWidth="80">
+			<u-form-item label="计划行号:" prop="DeliveryID" borderBottom labelWidth="80">
 				<u-input v-model="shipmentRecord.DeliveryID" border="none" readonly></u-input>
 			</u-form-item>
 
 			<u-input id="sacnInput" :focus="scanFocus" type="text" placeholder="请扫描箱号" clearable v-model="scanBoxNo"
-				@blur="scanBlur" @confirm="checkBoxNoInfo"></u-input>
+				@confirm="checkBoxNoInfo"></u-input>
 
 			<wyb-table v-if='tableHeight!=""' ref="table" class="table" width="auto" :headers="headers" :fontSize=[13]
 				:contents="contents" :height='tableHeight' @onCellClick="clickCell" />
 
-			<u-form-item label="承运:" prop="DeliveryCompany" borderBottom ref="item1" labelWidth="60">
+			<u-form-item label="承运:" prop="DeliveryCompany" borderBottom labelWidth="60">
 				<template>
 					<picker @change="bindPickerChange" :value="index" :range="expressList" range-key="DeliveryCompany">
 						<u-input v-model="shipmentRecord.DeliveryCompany" border="none" :readonly="true"></u-input>
 					</picker>
 				</template>
 			</u-form-item>
-			<u-form-item label="单号:" prop="DeliveryNo" borderBottom ref="item1" labelWidth="60">
+			<u-form-item label="单号:" prop="DeliveryNo" borderBottom labelWidth="60">
 				<u-input v-model="shipmentRecord.DeliveryNo" :focus="isFocus" border="none" autocomplete="off"
+					@confirm="() => {isFocus1 = true}" clearable></u-input>
+			</u-form-item>
+			<u-form-item label="SD单号:" prop="SDNo" borderBottom labelWidth="60">
+				<u-input v-model="shipmentRecord.SDNo" :focus="isFocus1" border="none" autocomplete="off"
 					clearable></u-input>
 			</u-form-item>
 		</u-form>
@@ -85,11 +89,13 @@
 					DeliveryID: '', //计划行号
 					DeliveryCompany: '', //快递名称
 					DeliveryNo: '', //快递单号
+					SDNo: '' //SD单号
 				},
 				showModal: false, //模态框显示状态
 				modalTitle: '提示', //模态框标题
 				modalContent: '', //模态框内容
 				isFocus: false,
+				isFocus1: false,
 				deliveryRow: {}, //计划行的信息
 				scanBoxNo: "",
 				scanRecord: "",
@@ -119,43 +125,7 @@
 			this.getPlanPackage();
 			this.getExpressInfo();
 		},
-		onShow() {
-			let that = this;
-			// uni.$off('scan') // 每次进来先 移除全局自定义事件监听器
-			// uni.$on('scan', function(data) {
-			// 	console.log('扫码结果：', that.isScanBox, data.code);
-			// 	//扫码成功后的回调，你可以写自己的逻辑代码在这里
-			// 	if (that.isFocus) {
-			// 		return;
-			// 	}
-			// 	if (!that.isScanBox || data.code == '') {
-			// 		uni.showToast({
-			// 			icon: 'none',
-			// 			title: "没有开启监听扫描或者没有扫描内容"
-			// 		})
-			// 		return;
-			// 	};
-			// 	console.log('扫码结果1：', data.code);
-			// 	that.getPackageInfo(data.code);
-			// 	that.contents = that.contents.map(val => {
-			// 		if (val.BoxID == data.code) {
-			// 			val.CustBoxID = JSON.parse(data.code).CustBoxID;
-			// 			console.log("次数：", that.contents.filter(val => val.CustBoxID))
-			// 			if (that.contents.filter(val => val.CustBoxID).length == that.contents.length) {
-			// 				uni.showToast({
-			// 					icon: 'none',
-			// 					title: '已扫描完毕'
-			// 				})
-			// 				that.isScanBox = !that.isScanBox;
-			// 			}
-			// 		}
-			// 		return val;
-			// 	})
-			// })
-		},
 		mounted() {
-			// document.getElementById('sacnInput').focus();
-			// this.$refs.sacnInput.focus();
 			this.scanFocus = true
 		},
 		watch: {
@@ -180,21 +150,21 @@
 			clickCell(e) {
 				console.log("点击的行：", e);
 			},
-			scanBlur() {
-				this.scanFocus = false;
-				console.log("是否扫描完成：", this.scanOver)
-				//扫描完毕
-				if (this.scanOver) {
-					// #ifdef APP
-					uni.hideKeyboard();
-					// #endif
-					this.isFocus = true
-				} else {
-					setTimeout(() => {
-						this.scanFocus = !this.scanFocus
-					}, 200)
-				}
-			},
+			// scanBlur() {
+			// 	this.scanFocus = false;
+			// 	console.log("是否扫描完成：", this.scanOver)
+			// 	//扫描完毕
+			// 	if (this.scanOver) {
+			// 		// #ifdef APP
+			// 		uni.hideKeyboard();
+			// 		// #endif
+			// 		this.isFocus = true
+			// 	} else {
+			// 		setTimeout(() => {
+			// 			this.scanFocus = !this.scanFocus
+			// 		}, 200)
+			// 	}
+			// },
 			//保持滚动条一直在底部
 			scrollToBottom() {
 				this.$nextTick(() => {
