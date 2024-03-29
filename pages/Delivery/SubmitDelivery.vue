@@ -106,7 +106,7 @@
 		onLoad(params) {
 			var loginUser = JSON.parse(uni.getStorageSync('userInfo'));
 			console.log("登录人信息：", loginUser);
-			this.shipmentRecord.CreateBy = loginUser.Account;
+			this.shipmentRecord.CreatedBy = loginUser.Account;
 			console.log("选中的行：", params)
 			// this.shipmentRecord = JSON.parse(JSON.stringify(params));
 			this.shipmentRecord.ID = params.ID;
