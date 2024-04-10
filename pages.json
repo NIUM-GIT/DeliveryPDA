@@ -8,7 +8,7 @@
 			"style": {
 				"navigationBarTitleText": "发货程序"
 			}
-		},{
+		}, {
 			"path": "pages/Delivery/SelectPlan",
 			"style": {
 				"navigationBarTitleText": "查询计划"
@@ -24,6 +24,12 @@
 			"path": "pages/Delivery/PackageInfo",
 			"style": {
 				"navigationBarTitleText": "包装详情"
+			}
+		},
+		{
+			"path": "pages/Delivery/SplitBoxNum",
+			"style": {
+				"navigationBarTitleText": "装箱拆挪"
 			}
 		}
 	],

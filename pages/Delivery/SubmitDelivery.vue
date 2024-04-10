@@ -5,16 +5,23 @@
 				<u-input v-model="shipmentRecord.DeliveryID" border="none" readonly></u-input>
 			</u-form-item>
 
-			<u-input id="sacnInput" :focus="scanFocus" type="text" placeholder="请扫描箱号" clearable v-model="scanBoxNo"
-				@confirm="checkBoxNoInfo"></u-input>
+			<u-row gutter="20" class="scanRow">
+				<u-col :span="10">
+					<u-input :focus="scanFocus" type="text" placeholder="请扫描箱号" clearable v-model="scanBoxNo"
+						@confirm="checkBoxNoInfo"></u-input>
+				</u-col>
+				<u-col :span="2">
+					<u-button @click="openSplitPage">拆挪</u-button>
+				</u-col>
+			</u-row>
 
 			<wyb-table v-if='tableHeight!=""' ref="table" class="table" width="auto" :headers="headers" :fontSize=[13]
-				:contents="contents" :height='tableHeight' @onCellClick="clickCell" />
+				:contents="contents" :height='tableHeight' :computed-col="needComputed" />
 
 			<u-form-item label="承运:" prop="DeliveryCompany" borderBottom labelWidth="60">
 				<template>
 					<picker @change="bindPickerChange" :value="index" :range="expressList" range-key="DeliveryCompany">
-						<u-input v-model="shipmentRecord.DeliveryCompany" border="none" :readonly="true"></u-input>
+						<view>{{shipmentRecord.DeliveryCompany}}</view>
 					</picker>
 				</template>
 			</u-form-item>
@@ -52,7 +59,6 @@
 			return {
 				version: getApp().globalData.version,
 				windowWidth: '',
-				productPn: '',
 				rules: {
 					'DeliveryID': {
 						type: 'string',
@@ -63,34 +69,49 @@
 				},
 				tableHeight: 'auto',
 				headers: [{
-					label: '序号',
-					key: 'index',
-					width: '50px'
-				}, {
-					label: '箱号',
-					key: 'BoxID',
-					width: '140px'
-				}, {
-					label: '数量',
-					key: 'Qty'
-				}, {
-					label: '重量',
-					key: 'Weight'
-				}, {
-					label: '客户箱号',
-					key: 'CustBoxID'
-				}],
+						label: '序号',
+						key: 'index',
+						width: '50px'
+					}, {
+						label: '箱号',
+						key: 'BoxID',
+						width: '140px'
+					}, {
+						label: '数量',
+						key: 'Qty'
+					}, {
+						label: '重量',
+						key: 'Weight'
+					}, {
+						label: '客户箱号',
+						key: 'CustBoxID'
+					}, {
+						label: '产品',
+						key: 'ItemCode',
+						width: '160px'
+					},
+					// {
+					// 	label: '客户',
+					// 	key: 'CustCode'
+					// }, 
+					{
+						label: '包装日期',
+						key: 'PackedDate',
+						width: '140px'
+					},
+					// {
+					// 	label: '发货日期',
+					// 	key: 'ShipDate',
+					// 	width: '140px'
+					// },
+				],
 				contents: [],
+				needComputed: ['Qty'],
 				code: '',
 				scanTime: 0,
-				index: 0,
+				index: -1,
 				expressList: [],
-				shipmentRecord: {
-					DeliveryID: '', //计划行号
-					DeliveryCompany: '', //快递名称
-					DeliveryNo: '', //快递单号
-					SDNo: '' //SD单号
-				},
+				shipmentRecord: {}, //需要保存的所有数据
 				showModal: false, //模态框显示状态
 				modalTitle: '提示', //模态框标题
 				modalContent: '', //模态框内容
@@ -105,67 +126,88 @@
 		},
 		onLoad(params) {
 			var loginUser = JSON.parse(uni.getStorageSync('userInfo'));
-			console.log("登录人信息：", loginUser);
 			this.shipmentRecord.CreatedBy = loginUser.Account;
 			console.log("选中的行：", params)
-			// this.shipmentRecord = JSON.parse(JSON.stringify(params));
-			this.shipmentRecord.ID = params.ID;
-			this.shipmentRecord.DeliveryID = params.DeliveryID;
-			this.shipmentRecord.CustomerID = params.CustomerID;
-			this.shipmentRecord.ProductPN = params.ProductPN;
-			this.shipmentRecord.Boxes = params.Boxes;
-			this.shipmentRecord.ScheduleQty = params.ScheduleQty;
-			this.shipmentRecord.ShippedQty = params.ShippedQty;
-			this.shipmentRecord.Gap = params.Gap;
-			this.productPn = params.ProductPN;
+			//将选中的计划详情参数备份，方便条件性字段的获取
+			this.deliveryRow = {
+				...params
+			}
 
-			this.deliveryRow = JSON.parse(JSON.stringify(params))
+			//将params中需要的字段值解构出来
+			let {
+				ID,
+				DeliveryID,
+				CustomerID,
+				FGPN,
+				Boxes,
+				ScheduleQty,
+				ShippedQty,
+				Gap
+			} = params
 
-			this.$util.getWindowWidth(this);
+			this.shipmentRecord = {
+				...this.shipmentRecord,
+				ID,
+				DeliveryID,
+				CustomerID,
+				ProductPN: FGPN,
+				Boxes,
+				ScheduleQty,
+				ShippedQty,
+				Gap
+			}
+
 			this.getPlanPackage();
 			this.getExpressInfo();
+		},
+		onShow() {
+			this.getPlanPackage();
 		},
 		mounted() {
 			this.scanFocus = true
 		},
 		watch: {
-			'scanRecord': 'scrollToBottom'
+			'scanRecord': 'scrollToBottom',
+			'index': 'valueShipmentRecordExpressInfo'
 		},
 		methods: {
-			bindPickerChange: function(e) {
-				console.log('confirm', e);
+			/** 点击拆挪事件 */
+			openSplitPage() {
+				console.log("！！！", this.shipmentRecord.DeliveryID)
+				this.$util.jumpTo('pages/Delivery/SplitBoxNum', {
+					deliveryID: this.shipmentRecord.DeliveryID,
+					ProductPN: this.shipmentRecord.ProductPN
+				})
+			},
+			bindPickerChange(e) {
 				this.index = e.detail.value;
-				let chooseRow = this.expressList[this.index];
-				// this.shipmentRecord = JSON.parse(JSON.stringify(chooseRow));
-				this.shipmentRecord.DelivererID = chooseRow.DelivererID;
-				this.shipmentRecord.DeliveryCompany = chooseRow.DeliveryCompany;
-				this.shipmentRecord.DeliverType = chooseRow.DeliverType;
-				this.shipmentRecord.UM = chooseRow.UM;
-				this.shipmentRecord.Price = chooseRow.Price;
-				this.shipmentRecord.PriceType = chooseRow.PriceType;
-				this.shipmentRecord.Deliverer = chooseRow.Deliverer;
-				this.shipmentRecord.ContactNo = chooseRow.ContactNo;
 			},
+			/** 对要保存的快递信息进行赋值 */
+			valueShipmentRecordExpressInfo() {
+				let {
+					DelivererID,
+					DeliveryCompany,
+					DeliverType,
+					UM,
+					Price,
+					PriceType,
+					Deliverer,
+					ContactNo
+				} = this.expressList[this.index];
 
-			clickCell(e) {
-				console.log("点击的行：", e);
+				this.shipmentRecord = {
+					...this.shipmentRecord,
+					DelivererID,
+					DeliveryCompany,
+					DeliverType,
+					UM,
+					Price,
+					PriceType,
+					Deliverer,
+					ContactNo
+				}
 			},
-			// scanBlur() {
-			// 	this.scanFocus = false;
-			// 	console.log("是否扫描完成：", this.scanOver)
-			// 	//扫描完毕
-			// 	if (this.scanOver) {
-			// 		// #ifdef APP
-			// 		uni.hideKeyboard();
-			// 		// #endif
-			// 		this.isFocus = true
-			// 	} else {
-			// 		setTimeout(() => {
-			// 			this.scanFocus = !this.scanFocus
-			// 		}, 200)
-			// 	}
-			// },
-			//保持滚动条一直在底部
+			//保持扫描结果框的滚动条一直在底部
 			scrollToBottom() {
 				this.$nextTick(() => {
 					var container = document.getElementById('container');
@@ -173,125 +215,104 @@
 				});
 			},
 			//查询扫描箱号的信息
-			async checkBoxNoInfo(e) {
-				console.log("1233：", e);
+			checkBoxNoInfo(e) {
 				this.scanRecord += "<p>扫描内容：" + e + "</p>";
-				let infoArr = e.split(";");
-				if (infoArr.length != 6) {
+				//为了方便测试，这里支持两种扫描格式-> 1、单独的箱号；2、箱号条码格式（6个字段且以分号隔开的字符串）
+				let isScanRight = false;
+				let boxId = "";
+				if (e.indexOf(";") != -1) {
+					let infoArr = e.split(";");
+					isScanRight = infoArr.length == 6
+					boxId = isScanRight ? infoArr[0] : ""
+				} else {
+					let letterPatt = /^[A-Za-z]+$/
+					isScanRight = e.length > 13 && letterPatt.test(e[0]) && !isNaN(Number(e.substring(1)))
+					boxId = isScanRight ? e : ""
+				}
+
+				if (!isScanRight) {
 					uni.showToast({
 						icon: 'none',
 						title: '扫描条码的格式不正确'
 					})
 					this.scanRecord += "<p>扫描结果：扫描条码的格式不正确，请重新扫描！</p>";
-					that.scanBoxNo = ""
+					this.scanBoxNo = ""
 					return;
 				}
-				await this.getPackageInfo(infoArr[0]);
+				this.getPackageInfo(boxId);
 			},
-			getExpressInfo() {
-				this.$api.getExpressInfo(1, 1000, "")
-					.then(res => {
-						var res = res.data;
-						console.log("请求到的数据:", res);
-						if (res.code == 200) { //登录成功
-							this.expressList = res.data.data;
-							let chooseRow = this.expressList[this.index];
-							// this.shipmentRecord = JSON.parse(JSON.stringify(chooseRow));
-							this.shipmentRecord.DelivererID = chooseRow.DelivererID;
-							this.shipmentRecord.DeliveryCompany = chooseRow.DeliveryCompany;
-							this.shipmentRecord.DeliverType = chooseRow.DeliverType;
-							this.shipmentRecord.UM = chooseRow.UM;
-							this.shipmentRecord.Price = chooseRow.Price;
-							this.shipmentRecord.PriceType = chooseRow.PriceType;
-							this.shipmentRecord.Deliverer = chooseRow.Deliverer;
-							this.shipmentRecord.ContactNo = chooseRow.ContactNo;
-							console.log("请求的快递信息：", this.expressList);
-						} else {
-							uni.showToast({
-								icon: 'none',
-								title: res.info
-							})
-						}
-					})
+			//请求快递列表信息
+			async getExpressInfo() {
+				const res = await this.$api.getExpressInfo(1, 1000, "")
+				this.expressList = res.data
+				this.index = 0;
 			},
-			getPlanPackage() {
-				this.$api.getPlanPackage(this.shipmentRecord.DeliveryID, this.productPn)
-					.then(res => {
-						var res = res.data;
-						console.log("请求到的数据:", res);
-						if (res.code == 200) { //登录成功
-							this.contents = res.data.map((val, index) => {
-								val.index = index + 1;
-								val.Qty = null;
-								val.DeliveryID = this.shipmentRecord.DeliveryID;
-								return val;
-							});
-						} else {
-							uni.showToast({
-								icon: 'none',
-								title: res.info
-							})
-						}
-					})
+			//请求计划号下的所有包装信息
+			async getPlanPackage() {
+				const res = await this.$api.getPlanPackage(this.shipmentRecord.DeliveryID,
+					this.shipmentRecord.ProductPN)
+				this.contents = res.map((val, index) => {
+					val.index = index + 1;
+					//方便看出没扫描的行
+					val.Qty = null;
+					val.Weight = null;
+					return val;
+				});
 			},
+			/** 获取扫描箱号的信息
+			 * @param {Object} boxId 箱号ID
+			 */
 			async getPackageInfo(boxId) {
 				let that = this;
-				this.$api.getPackageInfo(this.shipmentRecord.DeliveryID, boxId)
-					.then(res => {
-						var res = res.data;
-						console.log("请求到的数据:", res);
-						if (res.code == 200) { //登录成功
-							if (res.data.length == 0) {
+				const res = await this.$api.getPackageInfo(this.shipmentRecord.DeliveryID, boxId)
+				if (res.code == 200) { //登录成功
+					if (res.data.length == 0) {
+						uni.showToast({
+							icon: 'none',
+							title: "没有查到对应计划号下箱号" + boxId + "的相关数据"
+						})
+						that.scanRecord += "<p>扫描结果：没有查到对应计划号下箱号" + boxId + "的相关数据</p>";
+						return;
+					}
+					that.contents = that.contents.map(val => {
+						res.data.map(valson => {
+							if (val.BoxID == valson.boxID && val.CustBoxID == valson
+								.custBoxId) {
+								val.DeliveryID = that.shipmentRecord.DeliveryID;
+								val.Weight = valson.weight;
+								val.Qty = valson.qty;
+								val.CustBoxID = valson.custBoxId;
+							}
+						})
+						if (val.BoxID == boxId) {
+							val.CustBoxID = boxId;
+							if (that.contents.filter(val => val.CustBoxID).length == that.contents
+								.length) {
 								uni.showToast({
 									icon: 'none',
-									title: "没有查到箱号是" + boxId + "的相关数据"
+									title: '已扫描完毕'
 								})
-								that.scanRecord += "<p>扫描结果：没有查到箱号是：" + boxId + "的相关数据</p>";
-								return;
+								that.scanRecord += "<p>已扫描完毕！</p>";
+								that.scanOver = true
+								setTimeout(() => {
+									that.isFocus = true
+								}, 200)
 							}
-							that.contents = that.contents.map(val => {
-								res.data.map(valson => {
-									if (val.BoxID == valson.boxID && val.CustBoxID == valson
-										.custBoxId) {
-										val.DeliveryID = that.shipmentRecord.DeliveryID;
-										val.Weight = valson.weight;
-										val.Qty = valson.qty;
-										val.CustBoxID = valson.custBoxId;
-										//val.QtyperBox = valson.qtyperBox
-									}
-								})
-								if (val.BoxID == boxId) {
-									val.CustBoxID = boxId;
-									console.log("次数：", that.contents.filter(val => val.CustBoxID))
-									if (that.contents.filter(val => val.CustBoxID).length == that.contents
-										.length) {
-										uni.showToast({
-											icon: 'none',
-											title: '已扫描完毕'
-										})
-										that.scanRecord += "<p>已扫描完毕！</p>";
-										that.scanOver = true
-										setTimeout(() => {
-											that.isFocus = true
-										}, 200)
-									}
-								}
-								return val;
-							})
-							this.$nextTick();
-						} else {
-							uni.showToast({
-								icon: 'none',
-								title: res.info
-							})
-							that.scanRecord += "<p>扫描结果：" + res.info + "</p>";
 						}
-						that.scanBoxNo = ""
+						return val;
 					})
+					this.$nextTick();
+				} else {
+					uni.showToast({
+						icon: 'none',
+						title: res.info
+					})
+					that.scanRecord += "<p>扫描结果：" + res.info + "</p>";
+				}
+				that.scanBoxNo = ""
 			},
 			async submit() {
 				let that = this;
-				console.log("提交的数据：", this.shipmentRecord)
 				if (!this.shipmentRecord.DeliveryCompany) {
 					this.showModal = true;
 					this.modalContent = "承运不能为空！";
@@ -302,15 +323,15 @@
 					this.modalContent = "快递单号不能为空！";
 					return;
 				}
-				if (this.contents.filter(val => val.Weight == null).length != 0) {
+				if (this.contents.filter(val => val.Qty != null).length == 0) {
 					this.showModal = true;
-					this.modalContent = "箱号没有扫描齐全！";
+					this.modalContent = "没有扫描箱号！";
 					return;
 				}
 				this.shipmentRecord.ShippedQty = this.$util.getObjectSum(this.contents, "Qty");
 				this.shipmentRecord.Weight = this.$util.getObjectSum(this.contents, "Weight");
 				this.shipmentRecord.Gap = this.shipmentRecord.ShippedQty - this.shipmentRecord.ScheduleQty;
-				this.shipmentRecord.detail = this.contents;
+				this.shipmentRecord.detail = this.contents.filter(val => val.Qty > 0);
 
 				if (this.shipmentRecord.Gap > 0 && this.deliveryRow.IsOverShip == "N") {
 					this.showModal = true;
@@ -326,10 +347,9 @@
 					return
 				}
 
-				// 查询客户产品的在排量
-				let haveQtyInPlan = await this.$api.haveInPlanQty(this.shipmentRecord.DeliveryID)
-				console.log("?????", haveQtyInPlan)
-				//await haveInPlanQtyFun(this.shipmentRecord.DeliveryID);
+				// 查询客户产品是否有其他计划的在排量
+				const haveQtyInPlan = await this.$api.haveInPlanQty(this.shipmentRecord.DeliveryID)
+				console.log("客户产品是否有其他计划的在排量?", haveQtyInPlan)
 
 				if (this.shipmentRecord.Gap > 0) { // 允许情况下的多发
 					try {
@@ -418,25 +438,26 @@
 			// 	// }
 			// },
 			saveShip(saveData) {
-				this.$api.shipment(saveData)
-					.then(res => {
-						var res = res.data;
-						console.log("请求到的数据:", res);
-						if (res.code == 200) { //登录成功
-							uni.showToast({
-								icon: 'none',
-								title: '成功发货！'
-							})
-							setTimeout(function() {
-								uni.navigateBack()
-							}, 1000)
-						} else {
-							uni.showToast({
-								icon: 'none',
-								title: res.info
-							})
-						}
-					})
+				console.log(saveData);
+				// this.$api.shipment(saveData)
+				// 	.then(res => {
+				// 		var res = res.data;
+				// 		console.log("请求到的数据:", res);
+				// 		if (res.code == 200) { //登录成功
+				// 			uni.showToast({
+				// 				icon: 'none',
+				// 				title: '成功发货！'
+				// 			})
+				// 			setTimeout(function() {
+				// 				uni.navigateBack()
+				// 			}, 1000)
+				// 		} else {
+				// 			uni.showToast({
+				// 				icon: 'none',
+				// 				title: res.info
+				// 			})
+				// 		}
+				// 	})
 			}
 		},
 	};
@@ -454,7 +475,7 @@
 		margin-bottom: 20px;
 	}
 
-	#sacnInput {
+	.scanRow {
 		margin-top: 20px
 	}
 

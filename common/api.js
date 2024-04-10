@@ -26,26 +26,50 @@ export default {
 		})
 	},
 	//获取计划包装详情
-	getPlanPackage(deliveryNo, productPn) {
-		return request({
-			url: 'Shipment/GetPlanPackage?deliveryNo=' + deliveryNo + "&productPn=" + productPn,
+	async getPlanPackage(deliveryNo, productPn) {
+		const respone = await request({
+			url: 'Shipment/GetPlanPackage?deliveryNo=' + (deliveryNo ?? "") +
+				"&productPn=" + (productPn ?? ""),
 			method: 'GET'
 		})
+
+		let res = respone.data;
+		if (res.code == 200) {
+			return res.data
+		} else {
+			uni.showToast({
+				icon: 'none',
+				title: res.info
+			})
+			return false
+		}
 	},
 	//获取快递信息
-	getExpressInfo(pageIndex, pageSize, express) {
-		return request({
+	async getExpressInfo(pageIndex, pageSize, express) {
+		const respone = await request({
 			url: 'Shipment/GetExpressInfo?pageIndex=' + pageIndex + "&pageSize=" + pageSize +
 				"&express=" + express + "&isUse=true",
 			method: 'GET'
 		})
+
+		let res = respone.data;
+		if (res.code == 200) {
+			return res.data
+		} else {
+			uni.showToast({
+				icon: 'none',
+				title: res.info
+			})
+			return false
+		}
 	},
 	//扫描后获取包装信息
-	getPackageInfo(deliveryNo, boxId) {
-		return request({
+	async getPackageInfo(deliveryNo, boxId) {
+		const respone = await request({
 			url: 'Shipment/GetPackageInfo?deliveryNo=' + deliveryNo + "&boxId=" + boxId,
 			method: 'GET'
 		})
+		return respone.data
 	},
 	//获取客户产品可排量是否充足
 	async isBalanceQtyEnough(deliveryId, gap) {
@@ -54,12 +78,23 @@ export default {
 			method: 'GET'
 		})
 	},
-	//获取客户产品在排量
+	//获取客户产品其他计划的在排量
 	async haveInPlanQty(deliveryId) {
-		return await request({
+		const respone = await request({
 			url: 'Shipment/HaveInPlanQty?deliveryId=' + deliveryId,
 			method: 'GET'
 		})
+
+		let res = respone.data;
+		if (res.code == 200) {
+			return res.data
+		} else {
+			uni.showToast({
+				icon: 'none',
+				title: res.info
+			})
+			return false
+		}
 	},
 	//发货
 	shipment(param) {
@@ -68,5 +103,71 @@ export default {
 			method: 'POST',
 			data: param
 		})
-	}
+	},
+	//获取可拆解的计划包装箱信息
+	async getCouldSplitBox(deliveryNo, productPn) {
+		const respone = await request({
+			url: 'Shipment/GetCouldSplitBox?deliveryNo=' + (deliveryNo ?? "") +
+				"&productPn=" + (productPn ?? ""),
+			method: 'GET'
+		})
+
+		let res = respone.data;
+		if (res.code == 200) {
+			return res.data
+		} else {
+			uni.showToast({
+				icon: 'none',
+				title: res.info
+			})
+			return false
+		}
+	},
+	//获取可拆解的无计划包装箱信息
+	async getCouldSplitBoxWithNoPlan(productPn) {
+		const respone = await request({
+			url: 'Shipment/GetCouldSplitBoxWithNoPlan?productPn=' + (productPn ?? ""),
+			method: 'GET'
+		})
+
+		let res = respone.data;
+		if (res.code == 200) {
+			return res.data
+		} else {
+			uni.showToast({
+				icon: 'none',
+				title: res.info
+			})
+			return false
+		}
+	},
+	//拆解计划包装箱
+	async splitBoxNum(formData) {
+		let formDataStr = '';
+		formData.forEach((value, key) => {
+			if (formDataStr !== '') {
+				formDataStr += '&';
+			}
+			formDataStr += encodeURIComponent(key) + '=' + encodeURIComponent(value);
+		});
+		const respone = await request({
+			url: 'Shipment/SplitBoxNum',
+			data: formDataStr,
+			method: 'POST',
+			header: {
+				'content-type': 'application/x-www-form-urlencoded',
+			},
+		})
+
+		let res = respone.data;
+		if (res.code == 200) {
+			return res.info
+		} else {
+			uni.showToast({
+				icon: 'none',
+				title: res.info
+			})
+			return false
+		}
+	},
 }
