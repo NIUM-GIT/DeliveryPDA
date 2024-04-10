@@ -7,11 +7,9 @@
 </template>
 
 <script>
-	import demoData from '../index/demoData.js'
 	import wybTable from '@/components/wyb-table/wyb-table.vue'
 	import bottomInfoBox from "@/components/bottom-info-box.vue"
 	export default {
-		mixins: [demoData],
 		components: {
 			wybTable,
 			bottomInfoBox
@@ -19,7 +17,6 @@
 		data() {
 			return {
 				version: getApp().globalData.version,
-				windowWidth: '',
 				tableHeight: 'auto',
 				headers: [{
 					label: '序号',
@@ -43,28 +40,17 @@
 		},
 		onLoad(params) {
 			this.form = params;
-			// this.contents = demoData.tableData1;	
-			this.$util.getWindowWidth(this);
 			this.getPlanPackage();
 		},
 		methods: {
-			getPlanPackage() {
-				this.$api.getPlanPackage(this.form.DeliveryID, this.form.ProductPN)
-					.then(res => {
-						var res = res.data;
-						console.log("请求到的数据:", res);
-						if (res.code == 200) { //登录成功
-							this.contents = res.data.map((val, index) => {
-								val.index = index + 1;
-								return val;
-							});
-						} else {
-							uni.showToast({
-								icon: 'none',
-								title: res.info
-							})
-						}
-					})
+			/** 获取计划的所有包装信息 */
+			async getPlanPackage() {
+				const res = await this.$api.getPlanPackage(this.form.DeliveryID, this.form.ProductPN)
+				console.log("请求到的数据:", res);
+				this.contents = res.map((val, index) => {
+					val.index = index + 1;
+					return val;
+				});
 			},
 			clickCell(e) {
 				console.log("点击的行：", e);
