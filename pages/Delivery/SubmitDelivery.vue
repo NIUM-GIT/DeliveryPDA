@@ -15,8 +15,10 @@
 				</u-col>
 			</u-row>
 
+			<text class="tipText">已扫描数量：{{ totalSacnQty }}</text>
+
 			<wyb-table v-if='tableHeight!=""' ref="table" class="table" width="auto" :headers="headers" :fontSize=[13]
-				:contents="contents" :height='tableHeight' :computed-col="needComputed" />
+				:contents="contents" :height='tableHeight' />
 
 			<u-form-item label="承运:" prop="DeliveryCompany" borderBottom labelWidth="60">
 				<template>
@@ -57,8 +59,6 @@
 		},
 		data() {
 			return {
-				version: getApp().globalData.version,
-				windowWidth: '',
 				rules: {
 					'DeliveryID': {
 						type: 'string',
@@ -106,9 +106,8 @@
 					// },
 				],
 				contents: [],
-				needComputed: ['Qty'],
-				code: '',
-				scanTime: 0,
+				scanContents: [],
+				totalSacnQty: 0,
 				index: -1,
 				expressList: [],
 				shipmentRecord: {}, //需要保存的所有数据
@@ -168,12 +167,12 @@
 		},
 		watch: {
 			'scanRecord': 'scrollToBottom',
-			'index': 'valueShipmentRecordExpressInfo'
+			'index': 'valueShipmentRecordExpressInfo',
+			'scanContents': 'changeScanContents'
 		},
 		methods: {
 			/** 点击拆挪事件 */
 			openSplitPage() {
-				console.log("！！！", this.shipmentRecord.DeliveryID)
 				this.$util.jumpTo('pages/Delivery/SplitBoxNum', {
 					deliveryID: this.shipmentRecord.DeliveryID,
 					ProductPN: this.shipmentRecord.ProductPN
@@ -213,6 +212,41 @@
 					var container = document.getElementById('container');
 					container.scrollTop = container.scrollHeight;
 				});
+			},
+			//扫描变动后触发事件
+			changeScanContents() {
+				console.log("scanContents变更了！！！！")
+				let that = this
+				this.valueToContents()
+				this.totalSacnQty = this.$util.getObjectSum(this.scanContents, "Qty")
+				this.checkIsScanOver()
+			},
+			//将扫描的数据放入contents，目前的目地只是为了方便用户看哪些箱号扫了
+			valueToContents() {
+				let that = this
+				this.scanContents.map(val => {
+					let item = that.contents.find(conVal => conVal.BoxID == val.BoxID)
+					item.Weight = val.Weight
+					item.Qty = val.Qty
+					item.CustBoxID = val.CustBoxID
+					console.log("that.contents变更了？", that.contents)
+				})
+			},
+			checkIsScanOver() {
+				let that = this
+				if (this.scanContents.length == this.contents.length) {
+					uni.showToast({
+						icon: 'none',
+						title: '已扫描完毕'
+					})
+					that.scanRecord += "<p>已扫描完毕！</p>";
+					that.scanOver = true
+					setTimeout(() => {
+						that.isFocus = true
+					}, 200)
+					return true
+				}
+				return false
 			},
 			//查询扫描箱号的信息
 			checkBoxNoInfo(e) {
@@ -258,12 +292,19 @@
 					val.Weight = null;
 					return val;
 				});
+				this.valueToContents()
 			},
 			/** 获取扫描箱号的信息
 			 * @param {Object} boxId 箱号ID
 			 */
 			async getPackageInfo(boxId) {
 				let that = this;
+
+				if (this.checkIsScanOver()) {
+					that.scanBoxNo = ""
+					return
+				}
+
 				const res = await this.$api.getPackageInfo(this.shipmentRecord.DeliveryID, boxId)
 				if (res.code == 200) { //登录成功
 					if (res.data.length == 0) {
@@ -274,33 +315,13 @@
 						that.scanRecord += "<p>扫描结果：没有查到对应计划号下箱号" + boxId + "的相关数据</p>";
 						return;
 					}
-					that.contents = that.contents.map(val => {
-						res.data.map(valson => {
-							if (val.BoxID == valson.boxID && val.CustBoxID == valson
-								.custBoxId) {
-								val.DeliveryID = that.shipmentRecord.DeliveryID;
-								val.Weight = valson.weight;
-								val.Qty = valson.qty;
-								val.CustBoxID = valson.custBoxId;
-							}
-						})
-						if (val.BoxID == boxId) {
-							val.CustBoxID = boxId;
-							if (that.contents.filter(val => val.CustBoxID).length == that.contents
-								.length) {
-								uni.showToast({
-									icon: 'none',
-									title: '已扫描完毕'
-								})
-								that.scanRecord += "<p>已扫描完毕！</p>";
-								that.scanOver = true
-								setTimeout(() => {
-									that.isFocus = true
-								}, 200)
-							}
+					if (res.data.length > 0) {
+						console.log("瞅瞅已经扫描的箱号是否已经扫描：", that.scanContents.find(val => val.BoxID == res.data[0].BoxID))
+						if (!that.scanContents.find(val => val.BoxID == res.data[0].BoxID)) {
+							that.scanContents.push(res.data[0])
 						}
-						return val;
-					})
+						console.log("瞅瞅已经扫描的箱号：", that.scanContents)
+					}
 					this.$nextTick();
 				} else {
 					uni.showToast({
@@ -323,15 +344,19 @@
 					this.modalContent = "快递单号不能为空！";
 					return;
 				}
-				if (this.contents.filter(val => val.Qty != null).length == 0) {
+				if (this.scanContents.length == 0) {
 					this.showModal = true;
 					this.modalContent = "没有扫描箱号！";
 					return;
 				}
-				this.shipmentRecord.ShippedQty = this.$util.getObjectSum(this.contents, "Qty");
-				this.shipmentRecord.Weight = this.$util.getObjectSum(this.contents, "Weight");
+				// this.shipmentRecord.ShippedQty = this.$util.getObjectSum(this.contents, "Qty");
+				// this.shipmentRecord.Weight = this.$util.getObjectSum(this.contents, "Weight");
+				// this.shipmentRecord.Gap = this.shipmentRecord.ShippedQty - this.shipmentRecord.ScheduleQty;
+				// this.shipmentRecord.detail = this.contents.filter(val => val.Qty > 0);
+				this.shipmentRecord.ShippedQty = this.$util.getObjectSum(this.scanContents, "Qty");
+				this.shipmentRecord.Weight = this.$util.getObjectSum(this.scanContents, "Weight");
 				this.shipmentRecord.Gap = this.shipmentRecord.ShippedQty - this.shipmentRecord.ScheduleQty;
-				this.shipmentRecord.detail = this.contents.filter(val => val.Qty > 0);
+				this.shipmentRecord.detail = this.scanContents;
 
 				if (this.shipmentRecord.Gap > 0 && this.deliveryRow.IsOverShip == "N") {
 					this.showModal = true;
@@ -417,47 +442,27 @@
 					}
 				}
 			},
-			// async isBalanceQtyEnough() {
-			// 	let res = await this.$api.isBalanceQtyEnough();
-			// 	res = res.data
-			// 	if (res.code == 200) {
-			// 		return res.data;
-			// 	} else {
-			// 		throw res.info
-			// 	}
-			// },
-			// async haveInPlanQtyFun(deliveryId) {
-			// 	console.log("?????", deliveryId)
-			// 	// let res = await this.$api.haveInPlanQty(deliveryId);
-			// 	// res = res.data
-			// 	// console.log("咋回事呢??", res)
-			// 	// if (res.code == 200) {
-			// 	// 	return res.data;
-			// 	// } else {
-			// 	// 	throw res.info
-			// 	// }
-			// },
 			saveShip(saveData) {
 				console.log(saveData);
-				this.$api.shipment(saveData)
-					.then(res => {
-						var res = res.data;
-						console.log("请求到的数据:", res);
-						if (res.code == 200) { //登录成功
-							uni.showToast({
-								icon: 'none',
-								title: '成功发货！'
-							})
-							setTimeout(function() {
-								uni.navigateBack()
-							}, 1000)
-						} else {
-							uni.showToast({
-								icon: 'none',
-								title: res.info
-							})
-						}
-					})
+				// this.$api.shipment(saveData)
+				// 	.then(res => {
+				// 		var res = res.data;
+				// 		console.log("请求到的数据:", res);
+				// 		if (res.code == 200) { //登录成功
+				// 			uni.showToast({
+				// 				icon: 'none',
+				// 				title: '成功发货！'
+				// 			})
+				// 			setTimeout(function() {
+				// 				uni.navigateBack()
+				// 			}, 1000)
+				// 		} else {
+				// 			uni.showToast({
+				// 				icon: 'none',
+				// 				title: res.info
+				// 			})
+				// 		}
+				// 	})
 			}
 		},
 	};
@@ -468,6 +473,16 @@
 		margin-top: 20px;
 		width: 400rpx;
 		background-color: #338dc0;
+	}
+
+	.tipText {
+		margin-top: 10px;
+		margin-right: 10px;
+		display: flex;
+		flex: 1;
+		justify-content: end;
+		font-size: 14px;
+		color: #e0483a;
 	}
 
 	.table {

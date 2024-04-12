@@ -73,10 +73,21 @@ export default {
 	},
 	//获取客户产品可排量是否充足
 	async isBalanceQtyEnough(deliveryId, gap) {
-		return await request({
+		const respone = await request({
 			url: 'Shipment/IsBalanceQtyEnough?deliveryId=' + deliveryId + "&gap=" + gap,
 			method: 'GET'
 		})
+
+		let res = respone.data;
+		if (res.code == 200) {
+			return res.data
+		} else {
+			uni.showToast({
+				icon: 'none',
+				title: res.info
+			})
+			return false
+		}
 	},
 	//获取客户产品其他计划的在排量
 	async haveInPlanQty(deliveryId) {
