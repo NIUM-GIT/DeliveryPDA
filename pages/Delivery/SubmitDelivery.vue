@@ -439,25 +439,25 @@
 			// },
 			saveShip(saveData) {
 				console.log(saveData);
-				// this.$api.shipment(saveData)
-				// 	.then(res => {
-				// 		var res = res.data;
-				// 		console.log("请求到的数据:", res);
-				// 		if (res.code == 200) { //登录成功
-				// 			uni.showToast({
-				// 				icon: 'none',
-				// 				title: '成功发货！'
-				// 			})
-				// 			setTimeout(function() {
-				// 				uni.navigateBack()
-				// 			}, 1000)
-				// 		} else {
-				// 			uni.showToast({
-				// 				icon: 'none',
-				// 				title: res.info
-				// 			})
-				// 		}
-				// 	})
+				this.$api.shipment(saveData)
+					.then(res => {
+						var res = res.data;
+						console.log("请求到的数据:", res);
+						if (res.code == 200) { //登录成功
+							uni.showToast({
+								icon: 'none',
+								title: '成功发货！'
+							})
+							setTimeout(function() {
+								uni.navigateBack()
+							}, 1000)
+						} else {
+							uni.showToast({
+								icon: 'none',
+								title: res.info
+							})
+						}
+					})
 			}
 		},
 	};
